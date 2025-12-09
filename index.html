@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Моніторинг Сенсора</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #f0f2f5;
+            margin: 0;
+        }
+        .sensor-card {
+            background: white;
+            padding: 40px;
+            border-radius: 15px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            text-align: center;
+            width: 300px;
+            transition: background-color 0.3s;
+        }
+        h1 { margin-top: 0; color: #333; }
+        .temp-display {
+            font-size: 4em;
+            font-weight: bold;
+            color: #2c3e50;
+            margin: 20px 0;
+        }
+        .status { color: #888; font-size: 0.9em; }
+        .warning {
+            color: white;
+            background-color: #e74c3c; /* Червоний фон */
+        }
+        .warning .temp-display { color: white; }
+        .warning h1 { color: white; }
+        .alert-msg {
+            display: none;
+            font-weight: bold;
+            margin-top: 10px;
+            text-transform: uppercase;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="sensor-card" id="card">
+        <h1>Температура</h1>
+        <div class="temp-display"><span id="temp">--</span>°C</div>
+        <div class="alert-msg">⚠️ УВАГА: ПЕРЕГРІВ!</div>
+        <div class="status">Останнє оновлення: <span id="time">--:--:--</span></div>
+    </div>
+
+    <script>
+        const card = document.getElementById('card');
+        const tempElement = document.getElementById('temp');
+        const timeElement = document.getElementById('time');
+        const alertMsg = document.querySelector('.alert-msg');
+        
+        // Поріг температури для попередження
+        const CRITICAL_TEMP = 80;
+
+        const socket = new WebSocket('ws://localhost:8080');
+
+        socket.onopen = () => {
+            console.log('Підключено до сервера');
+        };
+
+        socket.onmessage = (event) => {
+            const data = JSON.parse(event.data);
+            const temp = data.value;
+
+            // Оновлюємо текст
+            tempElement.innerText = temp;
+            timeElement.innerText = data.timestamp;
+
+            // Логіка попередження
+            if (temp > CRITICAL_TEMP) {
+                card.classList.add('warning');
+                alertMsg.style.display = 'block';
+            } else {
+                card.classList.remove('warning');
+                alertMsg.style.display = 'none';
+            }
+        };
+
+        socket.onclose = () => {
+            console.log('Відключено від сервера');
+            timeElement.innerText = 'Втрачено зв\'язок';
+        };
+    </script>
+</body>
+</html>
